@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>2-Tier AC Train Ticket Booking (Demo)</title>
+  <style>
+    :root{--accent:#0ea5a4;--bg:#0f172a;--card:#0b1220;--glass:rgba(255,255,255,0.04)}
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}
+    body{margin:0;min-height:100vh;background:linear-gradient(180deg,#071028 0%, #071b2a 60%);color:#e6eef6;display:flex;align-items:center;justify-content:center;padding:32px}
+    .container{width:100%;max-width:980px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;padding:22px;box-shadow:0 10px 30px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
+    header{display:flex;gap:16px;align-items:center}
+    .logo{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#6ee7b7);display:flex;align-items:center;justify-content:center;font-weight:700;color:#012;box-shadow:0 6px 20px rgba(14,165,164,0.18)}
+    h1{margin:0;font-size:1.25rem}
+    p.lead{margin:0;color:#bcd7df}
+
+    .grid{display:grid;grid-template-columns:1fr 380px;gap:18px;margin-top:20px}
+    .card{background:var(--card);padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+
+    form .row{display:flex;gap:10px;margin-bottom:10px}
+    label{font-size:0.8rem;color:#9fb7c5}
+    input[type=text], input[type=date], input[type=number], select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    input[type=number]::-webkit-inner-spin-button{opacity:0}
+
+    .passenger-list{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+    .passenger{display:grid;grid-template-columns:1fr 120px 90px;gap:10px;align-items:end}
+    .mini{font-size:0.75rem;color:#9fb7c5}
+
+    .controls{display:flex;gap:8px;align-items:center}
+    button{background:var(--accent);border:none;padding:10px 14px;border-radius:10px;font-weight:600;color:#012;cursor:pointer}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:#cfe9ee}
+
+    .summary h3{margin:6px 0 10px}
+    .summary .line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed rgba(255,255,255,0.03)}
+    .big-total{font-size:1.25rem;font-weight:700;color:#cffafe;margin-top:8px}
+
+    .ticket{margin-top:12px;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border:1px solid rgba(255,255,255,0.03)}
+
+    .note{font-size:0.8rem;color:#9fb7c5;margin-top:8px}
+
+    /* modal */
+    .modal-back{position:fixed;inset:0;background:rgba(2,6,23,0.6);display:none;align-items:center;justify-content:center}
+    .modal-back.show{display:flex}
+    .modal{background:linear-gradient(180deg,#032231,#032d3a);padding:20px;border-radius:12px;width:360px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 12px 40px rgba(2,6,23,0.7)}
+
+    /* small animations */
+    .glow{animation:glow 2.5s ease-in-out infinite}
+    @keyframes glow{0%{box-shadow:0 6px 18px rgba(14,165,164,0.06)}50%{box-shadow:0 18px 40px rgba(14,165,164,0.12)}100%{box-shadow:0 6px 18px rgba(14,165,164,0.06)}}
+
+    footer{margin-top:14px;text-align:center;color:#92b9c6;font-size:0.85rem}
+
+    @media(max-width:880px){.grid{grid-template-columns:1fr}} 
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">2A</div>
+      <div>
+        <h1>2-Tier AC Train Ticket Booking (Demo)</h1>
+        <p class="lead">Fill passenger & journey details — this is a frontend demo (no backend).</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <form id="bookingForm">
+          <div class="row">
+            <div style="flex:1">
+              <label>From</label>
+              <input type="text" id="from" placeholder="City / Station" required />
+            </div>
+            <div style="flex:1">
+              <label>To</label>
+              <input type="text" id="to" placeholder="City / Station" required />
+            </div>
+          </div>
+
+          <div class="row">
+            <div style="flex:1">
+              <label>Journey Date</label>
+              <input type="date" id="jdate" required />
+            </div>
+            <div style="flex:1">
+              <label>Train Name / No.</label>
+              <input type="text" id="train" placeholder="Express 12345" />
+            </div>
+          </div>
+
+          <div style="margin-top:10px">
+            <div class="mini">Passengers</div>
+            <div class="passenger-list" id="passengerList"></div>
+            <div style="margin-top:8px;display:flex;gap:8px">
+              <button type="button" id="addPass">Add Passenger</button>
+              <button type="button" id="removePass" class="btn-ghost">Remove Last</button>
+            </div>
+          </div>
+
+          <div style="margin-top:12px" class="controls">
+            <label style="min-width:110px">Reservation Type</label>
+            <select id="resType">
+              <option value="General">General</option>
+              <option value="Tatkal">Tatkal</option>
+            </select>
+
+            <label style="min-width:90px">Berth Preference</label>
+            <select id="berth">
+              <option>Lower</option>
+              <option>Upper</option>
+              <option>Side Lower</option>
+              <option>Side Upper</option>
+            </select>
+          </div>
+
+          <div style="margin-top:14px;display:flex;gap:10px">
+            <button id="calcFare" type="button">Calculate Fare</button>
+            <button id="bookNow" type="button" class="glow">Book (Demo)</button>
+            <button id="reset" type="reset" class="btn-ghost">Reset</button>
+          </div>
+
+        </form>
+
+        <div class="note">Note: This demo does not connect to IRCTC/PNR systems. It's a client-side mockup for learning and UI testing.</div>
+      </div>
+
+      <aside class="card summary">
+        <h3>Booking Summary</h3>
+        <div class="line"><span>Route</span><span id="sumRoute">-</span></div>
+        <div class="line"><span>Train</span><span id="sumTrain">-</span></div>
+        <div class="line"><span>Date</span><span id="sumDate">-</span></div>
+        <div class="line"><span>Passengers</span><span id="sumPax">0</span></div>
+        <div class="line"><span>Class</span><span>2A (Two-tier AC)</span></div>
+        <div class="line"><span>Reservation</span><span id="sumRes">General</span></div>
+        <div class="line"><span>Fare per passenger</span><span id="farePer">₹0</span></div>
+        <div class="line"><span>Estimated Total</span><span id="fareTotal">₹0</span></div>
+
+        <div class="ticket" id="ticketCard" style="display:none">
+          <strong>Ticket (Preview)</strong>
+          <div style="font-size:0.9rem;margin-top:8px" id="ticketPreview">—</div>
+        </div>
+      </aside>
+    </div>
+
+    <footer>Made with ❤️ — Frontend demo. Want backend + database? Tell me which stack (Node/PHP/Python).</footer>
+  </div>
+
+  <div class="modal-back" id="modal">
+    <div class="modal">
+      <h3 id="modalTitle">Booking Confirmed</h3>
+      <p id="modalBody">PNR: <strong id="modalPNR">—</strong></p>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button id="closeModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simple frontend logic
+    const passengerList = document.getElementById('passengerList');
+    const addPass = document.getElementById('addPass');
+    const removePass = document.getElementById('removePass');
+    const sumPax = document.getElementById('sumPax');
+    const sumRoute = document.getElementById('sumRoute');
+    const sumTrain = document.getElementById('sumTrain');
+    const sumDate = document.getElementById('sumDate');
+    const sumRes = document.getElementById('sumRes');
+    const farePer = document.getElementById('farePer');
+    const fareTotal = document.getElementById('fareTotal');
+    const ticketCard = document.getElementById('ticketCard');
+    const ticketPreview = document.getElementById('ticketPreview');
+
+    const jdate = document.getElementById('jdate');
+    const from = document.getElementById('from');
+    const to = document.getElementById('to');
+    const train = document.getElementById('train');
+    const resType = document.getElementById('resType');
+    const berth = document.getElementById('berth');
+
+    const calcFareBtn = document.getElementById('calcFare');
+    const bookNow = document.getElementById('bookNow');
+    const modal = document.getElementById('modal');
+    const modalPNR = document.getElementById('modalPNR');
+    const closeModal = document.getElementById('closeModal');
+
+    let paxCount = 0;
+
+    function addPassenger(name='', age=18, gender='M'){
+      if(paxCount>=6) return alert('Max 6 passengers in this demo');
+      paxCount++;
+      const div = document.createElement('div');
+      div.className = 'passenger';
+      div.innerHTML = `
+        <div>
+          <label class="mini">Name</label>
+          <input type="text" class="pname" placeholder="Passenger ${paxCount}" value="${name}" required />
+        </div>
+        <div>
+          <label class="mini">Age</label>
+          <input type="number" min="0" class="page" value="${age}" required />
+        </div>
+        <div>
+          <label class="mini">Gender</label>
+          <select class="pgen">
+            <option value="M">M</option>
+            <option value="F">F</option>
+            <option value="O">O</option>
+          </select>
+        </div>
+      `;
+      passengerList.appendChild(div);
+      updateSummary();
+    }
+
+    addPass.addEventListener('click', ()=>addPassenger());
+    removePass.addEventListener('click', ()=>{
+      if(paxCount<=0) return;
+      passengerList.removeChild(passengerList.lastElementChild);
+      paxCount--;
+      updateSummary();
+    });
+
+    function updateSummary(){
+      sumPax.textContent = paxCount;
+      sumRoute.textContent = (from.value && to.value)? `${from.value} → ${to.value}` : '-';
+      sumTrain.textContent = train.value || '-';
+      sumDate.textContent = jdate.value || '-';
+      sumRes.textContent = resType.value;
+    }
+
+    [from,to,train,jdate,resType,berth].forEach(el=>el.addEventListener('change', updateSummary));
+
+    // Basic fare calculator (demo): base fare influenced by distance-ish heuristic and Tatkal
+    function estimateFare(){
+      // simple heuristic: string lengths -> pseudo-distance
+      const f = from.value.trim();
+      const t = to.value.trim();
+      if(!f || !t) { alert('Please enter From & To'); return null; }
+      const base = Math.max(300, (Math.abs(f.length - t.length) * 40) + 350);
+      let fare = base; // 2A base
+      if(resType.value === 'Tatkal') fare += Math.round(base * 0.30);
+      // berth surcharge
+      const b = berth.value;
+      if(b.includes('Upper')) fare += 20;
+      if(b.includes('Side')) fare += 10;
+      return fare;
+    }
+
+    calcFareBtn.addEventListener('click', ()=>{
+      const fare = estimateFare();
+      if(fare===null) return;
+      farePer.textContent = `₹${fare}`;
+      fareTotal.textContent = `₹${fare * Math.max(1,paxCount)}`;
+      ticketCard.style.display = paxCount? 'block' : 'none';
+      // render ticket preview
+      const seats = [];
+      for(let i=1;i<=paxCount;i++) seats.push(`P${i}: ${['L','U','SL','SU'][i%4]}-B${i+10}`);
+      ticketPreview.innerHTML = `PNR: -----<br>Route: ${from.value} → ${to.value}<br>Date: ${jdate.value}<br>Passengers: ${paxCount}<br>Seats: ${seats.join(', ')}`;
+      updateSummary();
+    });
+
+    // Book (demo) -> generates fake PNR and shows modal
+    bookNow.addEventListener('click', ()=>{
+      if(paxCount<=0){ alert('Add at least one passenger'); return; }
+      const fare = estimateFare();
+      if(fare===null) return;
+      // simple validation for date
+      if(!jdate.value){ alert('Pick a journey date'); return; }
+      const pnr = 'PNR' + Math.random().toString(36).substring(2,9).toUpperCase();
+      modalPNR.textContent = pnr;
+      document.getElementById('modalTitle').textContent = 'Booking Confirmed (Demo)';
+      document.getElementById('modalBody').innerHTML = `PNR: <strong>${pnr}</strong><br>Total Fare: <strong>₹${fare * paxCount}</strong>`;
+      modal.classList.add('show');
+    });
+
+    closeModal.addEventListener('click', ()=>{ modal.classList.remove('show'); });
+
+    // small UX: populate 1 passenger by default
+    addPassenger('Primary Passenger',22,'M');
+
+    // prevent form submit
+    document.getElementById('bookingForm').addEventListener('submit', (e)=>e.preventDefault());
+
+  </script>
+</body>
+</html>
